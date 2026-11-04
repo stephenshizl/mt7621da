@@ -1,0 +1,42 @@
+
+config MTKAUTOBOOT_DELAY
+	int "Delay for mtkautoboot command (seconds)"
+	range 1 60
+	default 3
+	help
+	  This is the default delay value for mtkautoboot command.
+	  It can be overrided by environment variable "mtkautoboot.delay"
+
+config MTK_DUAL_IMAGE_SUPPORT
+	bool "Enable dual image support"
+	default n
+	help
+	  Dual image support provides a way to protect the image from being
+	  damaged. When enabled, image check will be performed before booting.
+	  Both main image and backup image will be checked. If one of them has
+	  been damaged, the other one will replace it.
+
+config MTK_DUAL_IMAGE_PARTNAME_MAIN
+	string "MTD partition name of the main image"
+	default "firmware"
+	depends on MTK_DUAL_IMAGE_SUPPORT
+	help
+	  The MTD partition name of the main image. Normally it will be
+	  "firmware", and is the image to be booted.
+
+config MTK_DUAL_IMAGE_PARTNAME_BACKUP
+	string "MTD partition name of the backup image"
+	default "firmware_backup"
+	depends on MTK_DUAL_IMAGE_SUPPORT
+	help
+	  The MTD partition name of the backup image.
+
+config MTK_DUAL_IMAGE_UPGRADE_BACKUP
+	bool "Update backup image after upgrading main image"
+	default y
+	depends on MTK_DUAL_IMAGE_SUPPORT
+	help
+	  Select this if you want keep the backup image synced with the main
+	  image. If selected, the backup image MTD partition will be erase
+	  after successfully upgraded the main image, which allows the
+	  backup image to be updated in next dual image checking stage.
