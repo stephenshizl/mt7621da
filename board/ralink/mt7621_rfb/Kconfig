@@ -9,6 +9,14 @@ config SYS_BOARD
 config SYS_CONFIG_NAME
 	default "mt7621"
 
+config MT7621_5PORT_SWITCH
+	bool "MT7621DA 5-port switch board"
+	select BOARD_LATE_INIT
+	help
+	  Enable board-specific GPIO0 LED_RUN initialization for the MT7621DA
+	  five-port switch design. GPIO0 is driven high only in board_late_init,
+	  after the SoC has sampled its boot straps.
+
 config DEFAULT_NOR_KERNEL_OFFSET
 	hex "Default kernel offset in the NOR"
 	default 0x50000

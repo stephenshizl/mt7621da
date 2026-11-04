@@ -10,6 +10,7 @@
 #include <linux/sizes.h>
 #include <debug_uart.h>
 #include <asm/spl.h>
+#include <asm/gpio.h>
 #include <asm/io.h>
 #include <mach/mt7621_regs.h>
 #include <spi.h>
@@ -28,6 +29,36 @@ void board_debug_uart_init(void)
 	clrbits_le32(base + MT7621_SYS_RSTCTL_REG, REG_MASK(UART1_RST));
 	clrbits_le32(base + MT7621_SYS_GPIO_MODE_REG, REG_MASK(UART1_MODE));
 #endif
+}
+#endif
+
+#ifdef CONFIG_MT7621_5PORT_SWITCH
+int board_late_init(void)
+{
+	int ret;
+
+	ret = gpio_request(0, "led-run");
+	if (ret) {
+		printf("Failed to request GPIO0 for LED_RUN: %d\n", ret);
+		return ret;
+	}
+
+	/* Preload the output latch before enabling output to avoid a low pulse. */
+	ret = gpio_set_value(0, 1);
+	if (ret) {
+		printf("Failed to set GPIO0 LED_RUN high: %d\n", ret);
+		gpio_free(0);
+		return ret;
+	}
+
+	ret = gpio_direction_output(0, 1);
+	if (ret) {
+		printf("Failed to configure GPIO0 LED_RUN: %d\n", ret);
+		gpio_free(0);
+		return ret;
+	}
+
+	return 0;
 }
 #endif
 
