@@ -1,4 +1,4 @@
-# 
+#
 # Copyright (C) 2006-2016 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
@@ -9,12 +9,28 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=findutils
 PKG_VERSION:=4.6.0
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=@GNU/$(PKG_NAME)
-PKG_HASH:=ded4c9f73731cd48fec3b6bdaccce896473b6d8e337e9612e16cf1431bb1169d
-
-HOST_BUILD_PARALLEL:=1
+HOST_BUILD_DIR:=$(BUILD_DIR_HOST)/findutils-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/host-build.mk
+
+define Host/Prepare
+	mkdir -p $(HOST_BUILD_DIR)
+endef
+
+define Host/Configure
+endef
+
+define Host/Compile
+endef
+
+define Host/Install
+	$(INSTALL_BIN) /usr/bin/find $(STAGING_DIR_HOST)/bin/find
+	$(INSTALL_BIN) /usr/bin/xargs $(STAGING_DIR_HOST)/bin/xargs
+endef
+
+define Host/Clean
+	rm -f $(STAGING_DIR_HOST)/bin/find $(STAGING_DIR_HOST)/bin/xargs
+	$(call Host/Clean/Default)
+endef
 
 $(eval $(call HostBuild))
