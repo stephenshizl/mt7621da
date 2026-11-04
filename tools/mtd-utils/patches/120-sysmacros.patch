@@ -1,0 +1,8 @@
+--- a/include/common.h
++++ b/include/common.h
+@@ -28,6 +28,7 @@
+ #include <fcntl.h>
+ #include <errno.h>
+ #include <inttypes.h>
++#include <sys/sysmacros.h>
+ #include "version.h"
