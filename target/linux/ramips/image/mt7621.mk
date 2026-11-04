@@ -313,3 +313,13 @@ define Image/Prepare
 	$(MAKE) -C $(KDIR)/relocate KERNEL_ADDR=$(KERNEL_LOADADDR) CROSS_COMPILE=$(TARGET_CROSS)
 	$(CP) $(KDIR)/relocate/loader.bin $(KDIR)/loader.bin
 endef
+
+define Device/mt7621da-5port
+$(Device/DefaultFIT)
+  DEVICE_DTS := mt7621da-5port
+  BLOCKSIZE := 64k
+  IMAGE_SIZE := $(ralink_default_fw_size_8M)
+  DEVICE_TITLE := MediaTek MT7621DA 5-Port Gigabit Switch
+  DEVICE_PACKAGES := swconfig -kmod-mt76 -kmod-mt7603 -kmod-mt76x2 -kmod-mt7615e -kmod-mt7915e -wpad -wpad-mini -hostapd -iwinfo -wificonf -wifi-profile
+endef
+TARGET_DEVICES += mt7621da-5port

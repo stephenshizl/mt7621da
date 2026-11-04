@@ -32,6 +32,10 @@ ramips_setup_interfaces()
 	local board="$1"
 
 	case $board in
+	mt7621da-5port)
+		ucidef_add_switch "switch0" \
+			"0:lan:1" "1:lan:2" "2:lan:3" "3:lan:4" "4:lan:5" "6@eth0"
+		;;
 	11acnas|\
 	w2914nsv2)
 		ucidef_add_switch "switch0" \
