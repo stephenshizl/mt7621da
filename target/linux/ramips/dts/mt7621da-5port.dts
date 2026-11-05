@@ -44,7 +44,8 @@
 
 &gsw {
 	mediatek,mdio = <&mdio>;
-	mediatek,portmap = "lllll";
+	/* PHY ports 0..3: LAN; PHY port 4 (schematic PJ1): WAN. */
+	mediatek,portmap = "llllw";
 	mediatek,mcm;
 	mt7530,direct-phy-access;
 

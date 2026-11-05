@@ -238,6 +238,7 @@ platform_check_image() {
 		nand_do_platform_check "$board" "$1"
 		return $?;
 		;;
+	mt7621da-5port|\
 	mt7621-*)
 		# use metadata check only
 		return 0;
