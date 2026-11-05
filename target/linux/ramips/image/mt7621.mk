@@ -4,7 +4,8 @@
 
 # build dtb
 define Build/dtb
-        $(call Image/BuildDTB,$(DEVICE_DTS_DIR)/$(DEVICE_DTS).dts,$(KERNEL_BUILD_DIR)/$(DEVICE_DTS).dtb, -I$(LINUX_DIR)/arch/$(LINUX_KARCH)/boot/dts/include)
+        $(call Image/BuildDTB,$(DEVICE_DTS_DIR)/$(DEVICE_DTS).dts,$@.dtb, -I$(LINUX_DIR)/arch/$(LINUX_KARCH)/boot/dts/include)
+        mv -f $@.dtb $(KERNEL_BUILD_DIR)/$(DEVICE_DTS).dtb
 endef
 
 define Device/DefaultFIT
