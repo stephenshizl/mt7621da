@@ -20,6 +20,15 @@ Confirm physical pin numbering on the PCB. Pin 1 is not ground.
 TXD1 also participates in the reset boot straps. Do not infer reset-time
 levels from its later UART output.
 
+## Product port roles
+
+The final product has four LAN ports and one WAN port, without Wi-Fi.
+Linux uses PHY ports 0..3 as LAN and PHY port 4 as WAN. In the supplied
+schematic these are PJ5=LAN1, PJ4=LAN2, PJ3=LAN3, PJ2=LAN4 and PJ1=WAN.
+OpenWrt applies VLAN 1 (0 1 2 3 6t) and VLAN 2 (4 6t) through CPU port 6.
+U-Boot recovery Ethernet is a separate boot-stage configuration; Linux
+WAN/LAN roles do not establish which recovery ports have been validated.
+
 ## DDR dependencies and configuration
 
 The legacy DRAMC binaries are required source inputs from the distributor
