@@ -126,9 +126,6 @@
 	status = "disabled";
 };
 
-&i2c {
-	status = "disabled";
-};
 
 &hnat {
 	status = "disabled";
