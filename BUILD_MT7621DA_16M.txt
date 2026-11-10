@@ -1,0 +1,59 @@
+MT7621DA 五口 16 MiB 版 OpenWrt 编译、固件下载与升级
+
+1. 编译服务器
+   登录：ssh youyou@192.168.9.104
+   源码：/mnt/data3t/builddata/src/mt7621/mtk-openwrt-lede-4.2.1.0
+   分支：work-16M
+   使用仓库中的 MTK LEDE 4.2.1.0 SDK、板级配置和既有 dl 源码缓存。
+   SDK 自建 mipsel_24kc GCC 5.4.0/musl 工具链。
+   初次构建需要 GNU make、GCC/G++、binutils、flex、bison、patch、
+   gawk、gettext、ncurses 开发包、zlib 开发包、Perl 和 Python 等 SDK 主机依赖。
+   缓存不完整时，先执行 make -j4 download V=s，并检查老版本下载源和校验值。
+
+2. 在源码根目录编译
+   cd /mnt/data3t/builddata/src/mt7621/mtk-openwrt-lede-4.2.1.0
+   git status --short --branch
+   git rev-parse HEAD
+   export FORCE_UNSAFE_CONFIGURE=1
+   cp autobuild/mt7621da-5port-switch/.config .config
+   cp autobuild/mt7621da-5port-switch/config-4.4 target/linux/ramips/mt7621/config-4.4
+   make defconfig
+   make -j6 V=s
+   或运行该源码目录中的 bash build_5port.sh（使用 8 线程）。
+   构建失败时，保留日志并用 make -j1 V=s 定位首个实际错误。
+
+3. 编译产物
+   路径：bin/targets/ramips/mt7621/
+   lede-ramips-mt7621-mt7621da-5port-squashfs-sysupgrade.bin
+       正常 LuCI 升级及 U-Boot Web 恢复使用。SPI NOR 起始 0x050000。
+   lede-ramips-mt7621-mt7621da-5port-initramfs-kernel.bin
+       串口/TFTP 加载到 RAM 后 bootm 启动，用于调试。
+   lede-ramips-mt7621.manifest、config.seed、sha256sums
+       分别是包清单、配置种子、构建校验值。
+   16 MiB 全片由同一批组合 U-Boot 和系统镜像按板级偏移另行拼接。
+   两个构建产物的文件名沿用 SDK 规则，旧 8 MiB 分支有同名文件。
+   按交付校验清单和镜像元数据 supported_devices=mt7621da-5port-16m 区分。
+
+4. 下载到 Windows
+   scp youyou@192.168.9.104:/mnt/data3t/builddata/src/mt7621/mtk-openwrt-lede-4.2.1.0/bin/targets/ramips/mt7621/lede-ramips-mt7621-mt7621da-5port-squashfs-sysupgrade.bin .
+   initramfs、manifest、config.seed 和 sha256sums 用相同方法下载。
+   用 Get-FileHash -Algorithm SHA256 核对镜像与校验清单。
+   员工1报告目录的 firmware 子目录保留了本次构建交付件。
+
+5. 升级与烧录
+   首次迁移到 16 MiB 时，使用已确认容量的 16 MiB 板及 U-Boot 恢复页，
+   或用编程器写入空片全片样板。保留已有 env 和 Factory 及单机 MAC 数据。
+   设备已运行 16 MiB 版后，从 LAN 打开 192.168.1.1 的 LuCI，
+   在系统 → 备份/升级中备份配置、上传 squashfs-sysupgrade.bin，
+   让网页校验镜像后确认。可按需保留同版本布局的现有配置。
+   系统升级前可先执行 sysupgrade -T /tmp/镜像文件名。
+   不使用强制升级绕过板型或分区校验。
+   重启后检查 /proc/mtd 的 firmware 长度为 00fb0000、擦除块为 00010000，
+   /tmp/sysinfo/board_name 为 mt7621da-5port-16m，且 /overlay 可写。
+   检查 LAN1–4、WAN、LuCI 中英文切换和无无线入口。
+
+6. 可选服务
+   Samba 服务随镜像提供，默认关闭并取消自动共享用户主目录。
+   配置专用目录和访问权限后，在 LuCI 启动项中启用并启动 Samba。
+   HQoS 编译进 MediaTek 驱动，具体调度策略和 HNAT 流表需接 WAN 实测。
+   镜像保留已有 PPP/L2TP/PPTP 组件和 EIP93 驱动，VPN 协议与加速指标需联调。

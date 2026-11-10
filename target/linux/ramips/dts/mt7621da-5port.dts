@@ -4,8 +4,8 @@
 #include <dt-bindings/input/input.h>
 
 / {
-	compatible = "mediatek,mt7621da-5port", "mediatek,mt7621-rfb-nor", "mediatek,mt7621-soc";
-	model = "MT7621DA 5-Port Gigabit Switch";
+	compatible = "mediatek,mt7621da-5port-16m", "mediatek,mt7621da-5port", "mediatek,mt7621-rfb-nor", "mediatek,mt7621-soc";
+	model = "MT7621DA 5-Port Gigabit Switch (16 MiB)";
 
 	chosen {
 		bootargs = "console=ttyS0,57600";
@@ -106,7 +106,7 @@
 
 		partition@50000 {
 			label = "firmware";
-			reg = <0x50000 0x7b0000>;
+			reg = <0x50000 0xfb0000>;
 		};
 	};
 };

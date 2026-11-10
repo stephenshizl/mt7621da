@@ -1,0 +1,10 @@
+#!/bin/sh
+
+. /lib/ramips.sh
+
+[ "$(ramips_board_name)" = "mt7621da-5port-16m" ] || exit 0
+[ -x /etc/init.d/samba ] || exit 0
+
+uci set samba.@samba[0].homes='0'
+uci commit samba
+/etc/init.d/samba disable

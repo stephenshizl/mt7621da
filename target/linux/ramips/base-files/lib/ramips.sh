@@ -316,7 +316,10 @@ ramips_board_detect() {
 	*"MT7620a V22SG"*)
 		name="mt7620a_v22sg"
 		;;
-		*"MT7621DA 5-Port Gigabit Switch"*)
+	*"MT7621DA 5-Port Gigabit Switch (16 MiB)")
+		name="mt7621da-5port-16m"
+		;;
+	*"MT7621DA 5-Port Gigabit Switch"*)
 		name="mt7621da-5port"
 		;;
 	*"MediaTek MT7621 RFB (SNOR)")
