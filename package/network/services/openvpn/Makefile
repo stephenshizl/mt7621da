@@ -13,6 +13,7 @@ PKG_VERSION:=2.4.2
 PKG_RELEASE:=1
 
 PKG_SOURCE_URL:=\
+	https://sources.openwrt.org/ \
 	https://build.openvpn.net/downloads/releases/ \
 	https://swupdate.openvpn.net/community/releases/
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz

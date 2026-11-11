@@ -56,4 +56,19 @@ MT7621DA 五口 16 MiB 版 OpenWrt 编译、固件下载与升级
    Samba 服务随镜像提供，默认关闭并取消自动共享用户主目录。
    配置专用目录和访问权限后，在 LuCI 启动项中启用并启动 Samba。
    HQoS 编译进 MediaTek 驱动，具体调度策略和 HNAT 流表需接 WAN 实测。
-   镜像保留已有 PPP/L2TP/PPTP 组件和 EIP93 驱动，VPN 协议与加速指标需联调。
+   QoS 网页通过 qos-scripts 管理软件队列，默认关闭，需要实际带宽配置。
+   OpenVPN/OpenSSL、strongSwan IKEv2/IPsec 和对应内核模块随镜像交付。
+   OpenVPN 与 IPsec 默认关闭，配置认证和隧道参数后启用。
+   socat 用于按需串口透传。UART1 与 ttyS0 调试控制台共用，启用串口业务前
+   必须停用该串口的控制台输出/getty，并按 RS485 物料方案接线。
+   EIP93 硬件加速命中以及 QoS 与 HNAT 的协同行为需业务流量实测。
+
+7. 复位键和单机 MAC
+   按住 RESET 上电可进入 U-Boot 网页恢复。Linux 正常运行时，按住超过
+   5 秒后松开触发现有恢复出厂脚本。升级后的首次联调先备份配置。
+   Factory 分区偏移 0xe000 存 LAN MAC，0xe006 存 WAN MAC，均为 6 字节二进制。
+   LAN 地址无效时兼容读取旧偏移 4，仍无效时持久保存内核生成地址。
+   WAN 缺失、组播、全零或等于 LAN 时，用 LAN+1 派生，防止同 MAC。
+   空白 Factory 的全片样板需要量产工序另行分配唯一 MAC。
+   scripts/getver.sh 读取实际 HEAD。完成代码提交后重新清理 base-files 再构建，
+   使固件版本中的提交号与交付提交一致。

@@ -3,8 +3,11 @@
 . /lib/ramips.sh
 
 [ "$(ramips_board_name)" = "mt7621da-5port-16m" ] || exit 0
-[ -x /etc/init.d/samba ] || exit 0
-
 uci set samba.@samba[0].homes='0'
+uci set samba.@samba[0].interface='lan'
 uci commit samba
-/etc/init.d/samba disable
+uci -q set ipsec.TEST.enabled='0'
+uci -q commit ipsec
+for service in samba openvpn ipsec qos; do
+	[ ! -x "/etc/init.d/$service" ] || "/etc/init.d/$service" disable
+done
