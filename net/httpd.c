@@ -397,6 +397,14 @@ static int httpd_recv_hdr(struct httpd_instance *inst,
 			printf("    Content-Length: %d\n", pdata->payload_size);
 		}
 
+#ifdef CONFIG_MT7621_5PORT_SWITCH
+		/* 8MiB firmware plus bounded multipart overhead. */
+		if (!pdata->payload_size || pdata->payload_size > 0x7c0000) {
+			err_code = 413;
+			goto bad_request;
+		}
+#endif
+
 		/* Content-Type */
 		ct_ptr = strstr(fields_ptr, content_type_str);
 		if (ct_ptr) {

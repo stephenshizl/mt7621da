@@ -20,6 +20,7 @@
 #include <mmc.h>
 #include <part.h>
 #include <fs.h>
+#include <asm/unaligned.h>
 
 #include "spl_helper.h"
 #include "flash_helper.h"
@@ -949,7 +950,7 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size)
 
 	printf("OK\n");
 
-#ifdef CONFIG_MTK_DUAL_IMAGE_SUPPORT
+#if defined(CONFIG_MTK_DUAL_IMAGE_SUPPORT) || defined(CONFIG_MT7621_5PORT_SWITCH)
 	printf("Verifying flash from 0x%llx to 0x%llx, size 0x%x ... ",
 	       part_off, part_off + data_size - 1, data_size);
 
@@ -967,7 +968,9 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size)
 	}
 
 	printf("OK\n");
+#endif
 
+#ifdef CONFIG_MTK_DUAL_IMAGE_SUPPORT
 #ifdef CONFIG_MTK_DUAL_IMAGE_UPGRADE_BACKUP
 	printf("Updating backup image ...\n");
 
@@ -983,21 +986,102 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size)
 	return CMD_RET_SUCCESS;
 }
 
+#if defined(CONFIG_MT7621_5PORT_SWITCH) && defined(CONFIG_WEBUI_FAILSAFE)
+static int mt7621_has_rootfs(const u8 *data, u32 size, u32 kernel_size)
+{
+	u32 off;
+	u64 used;
+
+	for (off = ALIGN(kernel_size, 4); off <= size - 96; off += 4) {
+		if (memcmp(data + off, "hsqs", 4))
+			continue;
+		used = get_unaligned_le64(data + off + 40);
+		if (get_unaligned_le16(data + off + 28) == 4 &&
+		    used >= 96 && used <= size - off)
+			return 1;
+	}
+	return 0;
+}
+#endif
+
 int write_firmware_failsafe(size_t data_addr, uint32_t data_size)
 {
 	void *flash;
+#if defined(CONFIG_MT7621_5PORT_SWITCH) && defined(CONFIG_WEBUI_FAILSAFE)
+	const void *fit = (const void *)data_addr;
+	const image_header_t *hdr = fit;
+	const void *fdt;
+	size_t fdt_size;
+	uint64_t part_off, part_size;
+	u32 kernel_size;
+	int conf, fdt_node, part, len;
+	const fdt32_t *reg;
+#endif
 
 	flash = mtk_board_get_flash_dev();
 
 	if (!flash)
 		return CMD_RET_FAILURE;
 
+#if defined(CONFIG_MT7621_5PORT_SWITCH) && defined(CONFIG_WEBUI_FAILSAFE)
+	if (get_mtd_part_info("firmware", &part_off, &part_size) ||
+	    part_off != CONFIG_DEFAULT_NOR_KERNEL_OFFSET ||
+	    part_size != SZ_8M - CONFIG_DEFAULT_NOR_KERNEL_OFFSET ||
+	    data_size > part_size || data_size < 96)
+		goto invalid;
+
+	if (image_check_magic(hdr)) {
+		if (!image_check_hcrc(hdr) || !image_get_data_size(hdr) ||
+		    image_get_data_size(hdr) > data_size - sizeof(*hdr) ||
+		    !image_check_arch(hdr, IH_ARCH_MIPS) ||
+		    !image_check_os(hdr, IH_OS_LINUX) ||
+		    !image_check_type(hdr, IH_TYPE_KERNEL) || !image_check_dcrc(hdr))
+			goto invalid;
+		kernel_size = image_get_image_size(hdr);
+		if (!mt7621_has_rootfs(fit, data_size, kernel_size))
+			goto invalid;
+		return _write_firmware(flash, data_addr, data_size);
+	}
+
+	if (fdt_check_header(fit))
+		goto invalid;
+	kernel_size = fdt_totalsize(fit);
+	if (kernel_size < sizeof(struct fdt_header) || kernel_size > data_size ||
+	    !fit_check_format(fit) || !fit_all_image_verify(fit))
+		goto invalid;
+
+	conf = fit_conf_get_node(fit, NULL);
+	fdt_node = conf < 0 ? conf :
+		fit_conf_get_prop_node(fit, conf, FIT_FDT_PROP);
+	if (fdt_node < 0 || fit_image_get_data(fit, fdt_node, &fdt, &fdt_size) ||
+	    fdt_size < sizeof(struct fdt_header) || fdt_check_header(fdt) ||
+	    fdt_totalsize(fdt) > fdt_size ||
+	    fdt_node_check_compatible(fdt, 0, "mediatek,mt7621da-5port") ||
+	    !fdt_node_check_compatible(fdt, 0, "mediatek,mt7621da-5port-16m") ||
+	    !mt7621_has_rootfs(fit, data_size, kernel_size))
+		goto invalid;
+	part = fdt_node_offset_by_prop_value(fdt, -1, "label", "firmware", 9);
+	reg = part < 0 ? NULL : fdt_getprop(fdt, part, "reg", &len);
+	if (!reg || len != 8 || fdt32_to_cpu(reg[0]) != part_off ||
+	    fdt32_to_cpu(reg[1]) != part_size)
+		goto invalid;
+#endif
 	return _write_firmware(flash, data_addr, data_size);
+
+#if defined(CONFIG_MT7621_5PORT_SWITCH) && defined(CONFIG_WEBUI_FAILSAFE)
+invalid:
+	printf("Expected 8MiB MT7621DA FIT/uImage + SquashFS\n");
+	return CMD_RET_FAILURE;
+#endif
 }
 
 static int write_firmware(void *flash, size_t data_addr, uint32_t data_size)
 {
+#ifdef CONFIG_MT7621_5PORT_SWITCH
+	return write_firmware_failsafe(data_addr, data_size);
+#else
 	return _write_firmware(flash, data_addr, data_size);
+#endif
 }
 
 static int write_data(enum file_type ft, size_t addr, uint32_t data_size)

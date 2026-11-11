@@ -500,13 +500,18 @@ static void mt7530_setup(struct mt7621_eth_priv *priv)
 
 	/* Set port isolation */
 	for (i = 0; i < 8; i++) {
+		u32 port_matrix = i == 6 ? 0x3f : BIT(6);
+
+#ifdef CONFIG_MT7621_5PORT_SWITCH
+		/* This board uses PHY 4 as WAN. Keep boot services on LAN 0..3. */
+		if (i == 6)
+			port_matrix = 0x0f;
+		else if (i >= 4)
+			port_matrix = 0;
+#endif
 		/* Set port matrix mode */
-		if (i != 6)
-			mt7530_reg_write(priv, PCR_REG(i),
-				REG_SET_VAL(PORT_MATRIX, 0x40));
-		else
-			mt7530_reg_write(priv, PCR_REG(i),
-				REG_SET_VAL(PORT_MATRIX, 0x3f));
+		mt7530_reg_write(priv, PCR_REG(i),
+			REG_SET_VAL(PORT_MATRIX, port_matrix));
 
 		/* Set port mode to user port */
 		mt7530_reg_write(priv, PVC_REG(i),

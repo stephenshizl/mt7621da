@@ -6,6 +6,7 @@
  */
 
 #include <common.h>
+#include <asm/gpio.h>
 
 struct mtk_bootmenu_entry {
 	const char *desc;
@@ -24,6 +25,12 @@ struct mtk_bootmenu_entry {
 		.desc = "Load image",
 		.cmd = "mtkload"
 	}
+#if defined(CONFIG_MT7621_5PORT_SWITCH) && defined(CONFIG_WEBUI_FAILSAFE)
+	, {
+		.desc = "Web recovery (LAN, 192.168.1.1)",
+		.cmd = "setenv ipaddr 192.168.1.1; setenv netmask 255.255.255.0; httpd"
+	}
+#endif
 };
 
 static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
@@ -35,6 +42,27 @@ static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	char cmd[32];
 	const char *delay_str;
 	u32 delay = CONFIG_MTKAUTOBOOT_DELAY;
+
+#if defined(CONFIG_MT7621_5PORT_SWITCH) && defined(CONFIG_WEBUI_FAILSAFE)
+	if (!gpio_request(18, "reset-key")) {
+		if (!gpio_direction_input(18) && gpio_get_value(18) == 0) {
+			mdelay(500);
+			if (gpio_get_value(18) == 0) {
+				printf("Release RESET for web recovery at 192.168.1.1\n");
+				/* A stuck switch must still leave a usable recovery path. */
+				for (i = 0; i < 100 && gpio_get_value(18) == 0; i++) {
+					gpio_set_value(0, i & 1);
+					mdelay(100);
+				}
+				gpio_set_value(0, 1);
+				gpio_free(18);
+				return run_command("setenv ipaddr 192.168.1.1; "
+					"setenv netmask 255.255.255.0; httpd", 0);
+			}
+		}
+		gpio_free(18);
+	}
+#endif
 
 	for (i = 0; i < ARRAY_SIZE(bootmenu_entries); i++) {
 		snprintf(key, sizeof(key), "bootmenu_%d", i);

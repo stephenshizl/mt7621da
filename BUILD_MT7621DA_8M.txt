@@ -1,0 +1,28 @@
+MT7621DA 8MiB U-Boot build and recovery
+
+Branch: work_8M. From this checkout:
+  export PATH=/opt/buildroot-gcc492_mips_glibc/usr/bin:$PATH
+  export CROSS_COMPILE=mipsel-linux-
+  make mt7621_5port_defconfig
+  make -j4
+  test "$(stat -c %s u-boot-mt7621.bin)" -le 196608
+  sha256sum u-boot-mt7621.bin
+
+u-boot-mt7621.bin contains TPL/SPL/compressed U-Boot. The partition is 192KiB.
+Do not overwrite env at 0x30000 or Factory at 0x40000. Firmware starts 0x50000.
+This build intentionally targets only the 8MiB board, not a universal 16MiB DT.
+
+Hold RESET at power-on. GPIO18 must stay low for 500ms; RUN blinks while
+waiting for release (up to 10 seconds). Recovery is on LAN0..3 only:
+PC 192.168.1.2/24, browser http://192.168.1.1/ . WAN PHY4 is isolated.
+Autoboot failure also enters Web recovery. Requires board verification.
+
+Recovery validates actual firmware size 0x7b0000, FIT hashes and the exact
+8MiB board compatible/embedded firmware reg, plus a complete SquashFS.
+MIPS Linux legacy uImage+SquashFS is bounded and CRC-checked; it has no
+reliable DT identity check. Third-party legacy firmware needs explicit prior
+verification of board, DDR, flash layout and port mapping before installation.
+No arbitrary third-party firmware compatibility is claimed.
+HTTP body limit includes bounded multipart overhead; Flash writes/erases
+remain bounded by the firmware partition. Readback verification is enabled.
+These are corruption/layout checks, not signed firmware authentication.

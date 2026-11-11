@@ -35,7 +35,12 @@ void board_debug_uart_init(void)
 #ifdef CONFIG_MT7621_5PORT_SWITCH
 int board_late_init(void)
 {
+	void __iomem *sysctl = (void *)CKSEG1ADDR(MT7621_SYSCTL_BASE);
 	int ret;
+
+	/* J1 is active-low on WDT_RST_N/GPIO18 through R254. */
+	clrsetbits_le32(sysctl + MT7621_SYS_GPIO_MODE_REG,
+		REG_MASK(WDT_MODE), REG_SET_VAL(WDT_MODE, 1));
 
 	ret = gpio_request(0, "led-run");
 	if (ret) {
