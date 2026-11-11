@@ -1,0 +1,52 @@
+MT7621DA 5-port 8MiB wired feature build
+
+Branch: work-8M. SPI NOR: 8MiB, DDR3: 128MiB, UART: 57600 8N1.
+4 LAN ports (PHY 0..3), WAN PHY 4. No wireless hardware.
+
+Build from this checkout (do not use another checkout's generated .config):
+  export FORCE_UNSAFE_CONFIGURE=1
+  cp autobuild/mt7621da-5port-switch/.config .config
+  cp autobuild/mt7621da-5port-switch/config-4.4 target/linux/ramips/mt7621/config-4.4
+  make defconfig
+  make -j6 V=s
+On failure retain the log and locate the first error with make -j1 V=s.
+Use a fresh output directory or clean target/linux and base-files when changing
+board layout/configuration. Download and toolchain caches may be reused.
+
+Output: bin/targets/ramips/mt7621/
+  lede-ramips-mt7621-mt7621da-5port-squashfs-sysupgrade.bin
+  lede-ramips-mt7621-mt7621da-5port-initramfs-kernel.bin
+  lede-ramips-mt7621.manifest, config.seed, sha256sums
+
+Partition layout (end exclusive):
+  u-boot       0x000000 + 0x030000
+  u-boot-env   0x030000 + 0x010000
+  factory      0x040000 + 0x010000
+  firmware     0x050000 + 0x7b0000 = 0x800000
+Build limit 7872k. supported_devices must contain only mt7621da-5port.
+Never install a 16MiB DT/firmware just because its file is smaller than 8MiB.
+
+The wired services retain Samba4, OpenVPN/OpenSSL, strongSwan/IPsec,
+PPP/PPPoE/L2TP/PPTP, QoS, HNAT/HQoS, socat and Chinese/English LuCI.
+tcpdump, iperf3, libpcap and full build-config copies are omitted from ROM.
+The config sources, manifest and hashes belong in the delivery archive.
+Samba/OpenVPN/IPsec/QoS are initially disabled; configure then enable them.
+The first-boot policy is applied once and is kept as a UCI configuration flag.
+Samba homes is disabled, access is limited to LAN; IPsec TEST is disabled.
+Existing custom configuration should be backed up before migration.
+
+Normal sysupgrade validates actual MTD geometry, metadata CRC and device ID,
+then checks the embedded FIT/DT and SquashFS layout with mt7621da-image-check.
+The helper uses libfdt. Checks detect corruption/layout mismatch, not signatures.
+Use sysupgrade -T first and never use -F to bypass validation.
+Old firmware has weaker validation: independently inspect the first update.
+
+RESET is GPIO18 active low. Hold RESET during power-up for Web recovery
+using the matching 8MiB U-Boot. In Linux, hold >5 seconds then release to reset.
+Factory LAN MAC: 0xe000; WAN: 0xe006. Old LAN offset 4 remains supported.
+Always preserve each unit's Factory/env. Blank Factory is not production data.
+
+UART1/ttyS0 is shared with the debug console: socat alone does not release
+the console or implement Modbus RTU/TCP conversion. Verify wiring and console
+ownership before RS485 use. PoE needs actual compliant hardware.
+HNAT/HQoS, VPN acceleration, SMB and RS485 performance require board tests.

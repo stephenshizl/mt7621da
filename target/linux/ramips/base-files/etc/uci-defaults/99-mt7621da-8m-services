@@ -1,0 +1,21 @@
+#!/bin/sh
+
+. /lib/ramips.sh
+
+[ "$(ramips_board_name)" = "mt7621da-5port" ] || exit 0
+# Preserve subsequent user choices across keep-settings upgrades.
+[ "$(uci -q get mt7621da.state.services_initialized)" = "1" ] && exit 0
+
+uci set samba.@samba[0].homes='0'
+uci set samba.@samba[0].interface='lan'
+uci commit samba
+uci -q set ipsec.TEST.enabled='0'
+uci -q commit ipsec
+for service in samba openvpn ipsec qos; do
+	[ ! -x "/etc/init.d/$service" ] || "/etc/init.d/$service" disable
+done
+
+touch /etc/config/mt7621da
+uci set mt7621da.state=state
+uci set mt7621da.state.services_initialized='1'
+uci commit mt7621da
