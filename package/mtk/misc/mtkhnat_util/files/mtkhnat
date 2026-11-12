@@ -2,6 +2,13 @@
 
 . /lib/functions.sh
 
+# This board restores the baseline software forwarding path. Do not touch
+# QDMA debugfs queues or try to load a driver for a disabled DT device.
+if [ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "mt7621da-5port" ] &&
+   [ ! -d /sys/kernel/debug/hnat ]; then
+    exit 0
+fi
+
 config_load mtkhnat
 config_get enable global enable 0
 config_get hqos global hqos 0

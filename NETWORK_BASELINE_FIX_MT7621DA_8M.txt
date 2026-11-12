@@ -1,0 +1,24 @@
+2026-11-12 MT7621DA 8MiB 网络基线回归候选固件
+
+变更：恢复本板DTS HNAT disabled；关闭内核HW_QOS；升级时将本板
+mtkhnat enable/hqos置0并禁用其自启动。保留软件NAT、防火墙、IPv6、
+VPN、Samba、软件QoS及原有固件边界校验。硬件卸载当前不可用，
+恢复前须完成真实WAN/LAN流量验收；不承诺未测量的吞吐或CPU占用。
+
+这是针对偏离基线配置的回归修复候选，不代表现场根因已经闭环。
+源码核查不能支持“所有TCP都被0x5678毒化”的结论；相关引用函数
+mtk_sw_nat_hook_tx在此驱动由V2 WHNAT注册，本板是V1。
+
+现场旧固件临时对照：仅向hook_toggle写单字节，不用echo：
+  printf '0' > /sys/kernel/debug/hnat/hook_toggle
+恢复旧状态（原状态开启时）：
+  printf '1' > /sys/kernel/debug/hnat/hook_toggle
+cat该文件的状态出现在dmesg中。停止mtkhnat服务不等于停用内核钩子。
+新版DTS禁用后该debugfs目录不应出现，管理页开关不能恢复硬件卸载。
+
+升级只使用本版本sysupgrade.bin；先备份配置并执行sysupgrade -T。
+LuCI：System -> Backup / Flash Firmware，上传、校验、Proceed。
+不用-F，不更新U-Boot，不擦写Factory或env。U-Boot网页恢复步骤见
+UBOOT_WEB_UPGRADE_MT7621DA_8M.txt；使用本轮新固件哈希清单，不套用
+旧固件的大小或SHA256。旧Web升级文档的固定哈希只适用于旧版本。
+验收：相同电脑/接线下对比网页、大文件、测速、LAN/WAN隔离及VPN。

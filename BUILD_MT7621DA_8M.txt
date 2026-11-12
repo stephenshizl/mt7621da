@@ -75,3 +75,6 @@ HNAT/HQoS, VPN acceleration, SMB and RS485 performance require board tests.
 本流程升级的是OpenWrt系统，不是刷写U-Boot自身；首0x50000的引导/env/Factory受保护。
 恢复不提供LuCI的配置归档/恢复流程，应按可能需要重新配置准备。
 本轮未进行实板网页刷写；本次仅文档更新，固件二进制及SHA256不变。
+
+2026-11-12 网络基线回归：本板HNAT/HW_QOS恢复关闭。
+此前HNAT/HQoS描述仅指原版本，详见NETWORK_BASELINE_FIX_MT7621DA_8M.txt。
