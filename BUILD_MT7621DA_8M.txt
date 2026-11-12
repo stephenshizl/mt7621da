@@ -78,3 +78,6 @@ HNAT/HQoS, VPN acceleration, SMB and RS485 performance require board tests.
 
 2026-11-12 网络基线回归：本板HNAT/HW_QOS恢复关闭。
 此前HNAT/HQoS描述仅指原版本，详见NETWORK_BASELINE_FIX_MT7621DA_8M.txt。
+
+2026-11-12 Vendor topology alignment: PUBLIC_ALIGNMENT_MT7621DA_8M.txt
+now defines the current network/defaults and clean-upgrade requirement.

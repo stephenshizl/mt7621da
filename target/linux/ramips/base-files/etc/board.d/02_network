@@ -60,8 +60,10 @@ ramips_setup_interfaces()
 	case $board in
 	mt7621da-5port)
 		mt7621da_setup_macs
+		# Match the vendor RFB LAN/WAN and switch CPU-port topology.
+		ucidef_set_interfaces_lan_wan "eth0" "eth1"
 		ucidef_add_switch "switch0" \
-			"0:lan:1" "1:lan:2" "2:lan:3" "3:lan:4" "4:wan:5" "6t@eth0"
+			"0:lan" "1:lan" "2:lan" "3:lan" "4:wan" "6@eth0" "5@eth1"
 		;;
 	11acnas|\
 	w2914nsv2)
