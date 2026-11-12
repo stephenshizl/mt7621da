@@ -26,3 +26,12 @@ No arbitrary third-party firmware compatibility is claimed.
 HTTP body limit includes bounded multipart overhead; Flash writes/erases
 remain bounded by the firmware partition. Readback verification is enabled.
 These are corruption/layout checks, not signed firmware authentication.
+
+
+2026-11-12 文档补充：本次固件Web升级
+完整中文步骤见本源码根目录 WEB_UPGRADE_MT7621DA_8M.txt。
+普通LuCI菜单：System -> Backup / Flash Firmware；上传后核对大小和SHA256，
+再点击Proceed。交付文件为mt7621da-5port-8m-squashfs-sysupgrade.bin，
+6,815,925字节，SHA256 d8e38a09f5ad22b4b3359500d66934d2c80cc21aa05244ab9d587d309b03c39e。
+系统Web升级不更新U-Boot；按键进入恢复页须先安装配套8M引导。
+本次为文档增补，交付固件仍为r11+1-823a7b4c，未重新编译或刷写设备。
