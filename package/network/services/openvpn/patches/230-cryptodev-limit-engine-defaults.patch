@@ -1,6 +1,6 @@
 --- a/src/openvpn/crypto_openssl.c
 +++ b/src/openvpn/crypto_openssl.c
-@@ -108,7 +108,18 @@ setup_engine(const char *engine)
+@@ -108,7 +108,19 @@ setup_engine(const char *engine)
                         engine);
          }
  
