@@ -35,3 +35,19 @@ These are corruption/layout checks, not signed firmware authentication.
 6,815,925字节，SHA256 d8e38a09f5ad22b4b3359500d66934d2c80cc21aa05244ab9d587d309b03c39e。
 系统Web升级不更新U-Boot；按键进入恢复页须先安装配套8M引导。
 本次为文档增补，交付固件仍为r11+1-823a7b4c，未重新编译或刷写设备。
+
+
+2026-11-12 补充：U-Boot阶段网页升级OpenWrt
+独立完整步骤见 UBOOT_WEB_UPGRADE_MT7621DA_8M.txt。
+前提：先单独安装配套8M U-Boot；仅通过LuCI升级系统不会获得该引导恢复功能。
+1. 电脑直连LAN1至LAN4，设192.168.1.2/24；WAN口不提供引导恢复服务。
+2. 路由器断电，按住RESET再上电，看到运行灯闪烁后松开。
+3. 浏览器访问http://192.168.1.1/，进入U-Boot免密码恢复页。
+4. 选择mt7621da-5port-8m-squashfs-sysupgrade.bin，6,815,925字节，
+   SHA256 d8e38a09f5ad22b4b3359500d66934d2c80cc21aa05244ab9d587d309b03c39e。
+5. 提交上传/更新前先核对文件。此页面不沿用LuCI的Verify/Proceed二次确认流程。
+6. 等待校验、firmware擦写、回读及重启，期间保持供电，不按RESET或重复提交。
+7. 正常启动后电脑恢复DHCP，检查r11+1-823a7b4c及LAN/WAN、语言、业务设置。
+本流程升级的是OpenWrt系统，不是刷写U-Boot自身；首0x50000的引导/env/Factory受保护。
+恢复不提供LuCI的配置归档/恢复流程，应按可能需要重新配置准备。
+本轮未进行实板网页刷写；本次仅文档更新，固件二进制及SHA256不变。
