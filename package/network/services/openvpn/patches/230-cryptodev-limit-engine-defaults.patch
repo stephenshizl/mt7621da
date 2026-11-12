@@ -1,0 +1,23 @@
+--- a/src/openvpn/crypto_openssl.c
++++ b/src/openvpn/crypto_openssl.c
+@@ -108,7 +108,18 @@ setup_engine(const char *engine)
+                        engine);
+         }
+ 
+-        if (!ENGINE_set_default(e, ENGINE_METHOD_ALL))
++        /*
++         * The OpenSSL cryptodev engine exposes kernel cipher and digest
++         * methods only.  Registering it for every method makes OpenSSL try
++         * to obtain random bytes from cryptodev; that fails on Linux
++         * cryptodev and prevents an otherwise valid OpenVPN data cipher
++         * from starting.  Keep the historical behaviour for every other
++         * engine, but limit cryptodev to the methods it implements.
++         */
++        const int default_methods = strcmp(ENGINE_get_id(e), "cryptodev") == 0
++                                    ? ENGINE_METHOD_CIPHERS | ENGINE_METHOD_DIGESTS
++                                    : ENGINE_METHOD_ALL;
++
++        if (!ENGINE_set_default(e, default_methods))
+         {
+             crypto_msg(M_FATAL,
+                        "OpenSSL error: ENGINE_set_default failed on engine '%s'",
