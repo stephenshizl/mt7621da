@@ -6,15 +6,14 @@
  
 -        if (!ENGINE_set_default(e, ENGINE_METHOD_ALL))
 +        /*
-+         * The OpenSSL cryptodev engine exposes kernel cipher and digest
-+         * methods only.  Registering it for every method makes OpenSSL try
-+         * to obtain random bytes from cryptodev; that fails on Linux
-+         * cryptodev and prevents an otherwise valid OpenVPN data cipher
-+         * from starting.  Keep the historical behaviour for every other
-+         * engine, but limit cryptodev to the methods it implements.
++         * The Linux cryptodev engine exposes cipher and digest methods, but
++         * using its legacy digest path for OpenSSL's internal PRNG breaks
++         * RAND_bytes() in OpenVPN.  Use cryptodev for ciphers only; HMAC and
++         * the PRNG remain in libcrypto.  Keep the historical behaviour for
++         * every other engine.
 +         */
 +        const int default_methods = strcmp(ENGINE_get_id(e), "cryptodev") == 0
-+                                    ? ENGINE_METHOD_CIPHERS | ENGINE_METHOD_DIGESTS
++                                    ? ENGINE_METHOD_CIPHERS
 +                                    : ENGINE_METHOD_ALL;
 +
 +        if (!ENGINE_set_default(e, default_methods))
