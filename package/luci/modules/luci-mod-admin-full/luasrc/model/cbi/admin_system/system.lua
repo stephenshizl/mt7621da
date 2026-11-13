@@ -111,11 +111,13 @@ o:value(9, translate("Warning"))
 
 o = s:taboption("language", ListValue, "_lang", translate("Language"))
 o:value("auto")
+-- English is the source language and has no base.en.lmo catalogue.
+o:value("en", "English")
 
 local i18ndir = luci.i18n.i18ndir .. "base."
 for k, v in luci.util.kspairs(conf.languages) do
 	local file = i18ndir .. k:gsub("_", "-")
-	if k:sub(1, 1) ~= "." and fs.access(file .. ".lmo") then
+	if k ~= "en" and k:sub(1, 1) ~= "." and fs.access(file .. ".lmo") then
 		o:value(k, v)
 	end
 end
