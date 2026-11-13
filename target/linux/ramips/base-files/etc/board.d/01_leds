@@ -17,6 +17,7 @@ board=$(ramips_board_name)
 board_config_update
 
 case $board in
+mt7621da-5port-16m|\
 mt7621da-5port)
 	ucidef_set_led_default "run" "RUN" "green:run" "1"
 	;;

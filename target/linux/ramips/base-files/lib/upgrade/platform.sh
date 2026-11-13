@@ -238,6 +238,21 @@ platform_check_image() {
 		nand_do_platform_check "$board" "$1"
 		return $?;
 		;;
+	mt7621da-5port-16m)
+		if ! grep -q '^mtd[0-9]*: 00fb0000 00010000 "firmware"$' /proc/mtd; then
+			echo "Expected the 16 MiB board firmware partition."
+			return 1
+		fi
+		if [ "$magic" != "d00dfeed" ] || ! fwtool -q -i /dev/null "$1"; then
+			echo "Expected a FIT sysupgrade image with device metadata."
+			return 1
+		fi
+		if [ "$(wc -c < "$1")" -gt "$((0xfb0000))" ]; then
+			echo "Firmware image exceeds the 16 MiB board partition."
+			return 1
+		fi
+		return 0
+		;;
 	mt7621da-5port|\
 	mt7621-*)
 		# use metadata check only

@@ -319,8 +319,9 @@ define Device/mt7621da-5port
 $(Device/DefaultFIT)
   DEVICE_DTS := mt7621da-5port
   BLOCKSIZE := 64k
-  IMAGE_SIZE := $(ralink_default_fw_size_8M)
-  DEVICE_TITLE := MediaTek MT7621DA 5-Port Gigabit Switch
+  IMAGE_SIZE := 16064k
+  SUPPORTED_DEVICES := mt7621da-5port-16m
+  DEVICE_TITLE := MediaTek MT7621DA 5-Port Gigabit Switch (16 MiB)
   DEVICE_PACKAGES := swconfig -kmod-mt76 -kmod-mt7603 -kmod-mt76x2 -kmod-mt7615e -kmod-mt7915e -wpad -wpad-mini -hostapd -iwinfo -wificonf -wifi-profile
 endef
 TARGET_DEVICES += mt7621da-5port
