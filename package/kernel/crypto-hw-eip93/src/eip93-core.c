@@ -193,7 +193,7 @@ handle_results:
 	if (!nreq)
 		goto requests_left;
 
-	for (i = 0; i < nreq; i++) {
+	for (i = 0; i < nreq; i += ndesc) {
 
 		req = mtk_rdr_req_get(mtk);
 
@@ -203,7 +203,7 @@ handle_results:
 		ctx = crypto_tfm_ctx(req->tfm);
 		ndesc = ctx->handle_result(mtk, req, &should_complete, &ret);
 
-		if (ndesc < 0) {
+		if (ndesc <= 0) {
 			dev_err(mtk->dev, "failed get result\n");
 			goto acknowledge;
 		}

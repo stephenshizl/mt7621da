@@ -73,11 +73,12 @@ static bool mtk_is_sg_aligned(struct scatterlist *sg, int len, int blocksize)
 {
 	int nents;
 
-	if (!IS_ALIGNED(len, blocksize))
+	if (!IS_ALIGNED(len, blocksize) ||
+	    !IS_ALIGNED(len, dma_get_cache_alignment()))
 		return false;
 
 	for (nents = 0; sg; sg = sg_next(sg), ++nents) {
-		if (!IS_ALIGNED(sg->offset, sizeof(u32)))
+		if (!IS_ALIGNED(sg->offset, dma_get_cache_alignment()))
 			return false;
 
 		if (sg->offset + sg->length > PAGE_SIZE) {
@@ -338,7 +339,7 @@ int mtk_scatter_combine(struct mtk_device *mtk, dma_addr_t saRecord_base,
 	struct mtk_desc_buf *buf;
 	unsigned int remainin, remainout;
 	int offsetin = 0, offsetout = 0;
-	unsigned int n, len;
+	unsigned int n, len, src_map_len, dst_map_len;
 	dma_addr_t saddr, daddr;
 	bool nextin = false;
 	bool nextout = false;
@@ -351,6 +352,8 @@ int mtk_scatter_combine(struct mtk_device *mtk, dma_addr_t saRecord_base,
 
 	remainin = min(sgsrc->length, n);
 	remainout = min(sgdst->length, n);
+	src_map_len = remainin;
+	dst_map_len = remainout;
 
 	saddr = dma_map_page(mtk->dev, sg_page(sgsrc), sgsrc->offset,
 			     remainin, DMA_TO_DEVICE);
@@ -365,6 +368,7 @@ int mtk_scatter_combine(struct mtk_device *mtk, dma_addr_t saRecord_base,
 			if (remainin == 0)
 				continue;
 
+			src_map_len = remainin;
 			saddr = dma_map_page(mtk->dev, sg_page(sgsrc),
 				sgsrc->offset, remainin, DMA_TO_DEVICE);
 			offsetin = 0;
@@ -377,6 +381,7 @@ int mtk_scatter_combine(struct mtk_device *mtk, dma_addr_t saRecord_base,
 			if (remainout == 0)
 				continue;
 
+			dst_map_len = remainout;
 			daddr = dma_map_page(mtk->dev, sg_page(sgdst),
 				sgdst->offset, remainout, DMA_FROM_DEVICE);
 			offsetout = 0;
@@ -388,12 +393,10 @@ int mtk_scatter_combine(struct mtk_device *mtk, dma_addr_t saRecord_base,
 				nextout = true;
 		} else if (remainin < remainout) {
 			len = remainin;
-				offsetout += len;
 				remainout -= len;
 				nextin = true;
 		} else {
 			len = remainout;
-				offsetin += len;
 				remainin -= len;
 				nextout = true;
 		}
@@ -407,6 +410,19 @@ int mtk_scatter_combine(struct mtk_device *mtk, dma_addr_t saRecord_base,
 		buf = &mtk->ring[0].dma_buf[wptr];
 		buf->flags = 0;
 		buf->req = areq;
+		dma_unmap_len_set(buf, src_len, 0);
+		dma_unmap_len_set(buf, dst_len, 0);
+		dma_unmap_len_set(buf, auth_len, 0);
+		if (nextin) {
+			dma_unmap_addr_set(buf, src_addr, saddr);
+			dma_unmap_len_set(buf, src_len, src_map_len);
+		} else
+			offsetin += len;
+		if (nextout) {
+			dma_unmap_addr_set(buf, dst_addr, daddr);
+			dma_unmap_len_set(buf, dst_len, dst_map_len);
+		} else
+			offsetout += len;
 		ndesc_cdr++;
 		ndesc_rdr++;
 		n -= len;
@@ -640,23 +656,23 @@ int mtk_req_result(struct mtk_device *mtk, struct mtk_cipher_reqctx *rctx,
 			dma_unmap_page(mtk->dev,
 				       dma_unmap_addr(buf, src_addr),
 				       dma_unmap_len(buf, src_len),
-				       DMA_FROM_DEVICE);
+				       DMA_TO_DEVICE);
 
 		if (dma_unmap_len(buf, dst_len)) {
 			dma_unmap_page(mtk->dev,
 				       dma_unmap_addr(buf, dst_addr),
 				       dma_unmap_len(buf, dst_len),
-				       DMA_TO_DEVICE);
+				       DMA_FROM_DEVICE);
 			if (dma_unmap_len(buf, auth_len)) {
 				dma_unmap_page(mtk->dev,
 					       dma_unmap_addr(buf, dst_addr) +
 					       dma_unmap_len(buf, dst_len),
 					       dma_unmap_len(buf, auth_len),
-					       DMA_TO_DEVICE);
+					       DMA_FROM_DEVICE);
 			}
 		}
-		dma_unmap_len_set(buf, src_addr, 0);
-		dma_unmap_len_set(buf, dst_addr, 0);
+		dma_unmap_len_set(buf, src_len, 0);
+		dma_unmap_len_set(buf, dst_len, 0);
 		dma_unmap_len_set(buf, auth_len, 0);
 
 		ndesc++;
