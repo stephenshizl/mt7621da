@@ -5,6 +5,32 @@
 . /lib/functions/uci-defaults.sh
 . /lib/functions/system.sh
 
+mt7621da_valid_mac() {
+	case "$1" in
+		[0-9a-fA-F][02468aceACE]:*) ;;
+		*) return 1 ;;
+	esac
+	[ "$1" != "00:00:00:00:00:00" ] &&
+		echo "$1" | grep -Eq '^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$'
+}
+
+mt7621da_setup_macs() {
+	local lan_mac wan_mac
+
+	lan_mac=$(mtd_get_mac_binary factory 57344)
+	mt7621da_valid_mac "$lan_mac" || lan_mac=$(mtd_get_mac_binary factory 4)
+	# Preserve the kernel's generated address in UCI when Factory is blank.
+	mt7621da_valid_mac "$lan_mac" || lan_mac=$(cat /sys/class/net/eth0/address)
+	mt7621da_valid_mac "$lan_mac" || return 0
+	wan_mac=$(mtd_get_mac_binary factory 57350)
+	if ! mt7621da_valid_mac "$wan_mac" || [ "$wan_mac" = "$lan_mac" ]; then
+		wan_mac=$(macaddr_add "$lan_mac" 1)
+		mt7621da_valid_mac "$wan_mac" || wan_mac=$(macaddr_add "$lan_mac" 2)
+	fi
+	ucidef_set_interface_macaddr lan "$lan_mac"
+	ucidef_set_interface_macaddr wan "$wan_mac"
+}
+
 ramips_setup_rt3x5x_vlans()
 {
 	if [ ! -x /sbin/swconfig ]; then
@@ -33,8 +59,11 @@ ramips_setup_interfaces()
 
 	case $board in
 	mt7621da-5port)
+		mt7621da_setup_macs
+		# Match the vendor RFB LAN/WAN and switch CPU-port topology.
+		ucidef_set_interfaces_lan_wan "eth0" "eth1"
 		ucidef_add_switch "switch0" \
-			"0:lan:1" "1:lan:2" "2:lan:3" "3:lan:4" "4:wan:5" "6t@eth0"
+			"0:lan" "1:lan" "2:lan" "3:lan" "4:wan" "6@eth0" "5@eth1"
 		;;
 	11acnas|\
 	w2914nsv2)

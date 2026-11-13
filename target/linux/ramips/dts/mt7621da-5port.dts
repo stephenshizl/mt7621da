@@ -1,138 +1,48 @@
-/dts-v1/;
-
-#include "mt7621.dtsi"
-#include <dt-bindings/input/input.h>
+/* Reuse the vendor RFB NOR topology; only product hardware differences below. */
+#include "mt7621-rfb-nor.dts"
 
 / {
-	compatible = "mediatek,mt7621da-5port", "mediatek,mt7621-rfb-nor", "mediatek,mt7621-soc";
-	model = "MT7621DA 5-Port Gigabit Switch";
+    compatible = "mediatek,mt7621da-5port", "mediatek,mt7621-rfb-nor", "mediatek,mt7621-soc";
+    model = "MT7621DA 5-Port Gigabit Switch (8 MiB)";
 
-	chosen {
-		bootargs = "console=ttyS0,57600";
-	};
+    chosen {
+        bootargs = "console=ttyS0,57600";
+    };
 
-	gpio-leds {
-		compatible = "gpio-leds";
-
-		run {
-			label = "green:run";
-			gpios = <&gpio0 0 0>;
-			default-state = "on";
-		};
-	};
+    gpio-leds {
+        compatible = "gpio-leds";
+        run {
+            label = "green:run";
+            gpios = <&gpio0 0 0>;
+            default-state = "on";
+        };
+    };
 };
 
-&eth {
-	status = "okay";
-
-	gmac0: mac@0 {
-		compatible = "mediatek,eth-mac";
-		reg = <0>;
-		phy-mode = "trgmii";
-		fixed-link {
-			speed = <1000>;
-			full-duplex;
-			pause;
-		};
-	};
-
-	mdio: mdio-bus {
-		#address-cells = <1>;
-		#size-cells = <0>;
-	};
+/* Retain this product's programmed Factory offsets and upgrade ABI. */
+&gmac0 {
+    mtd-mac-address = <&factory 0xe000>;
 };
 
-&gsw {
-	mediatek,mdio = <&mdio>;
-	/* PHY ports 0..3: LAN; PHY port 4 (schematic PJ1): WAN. */
-	mediatek,portmap = "llllw";
-	mediatek,mcm;
-	mt7530,direct-phy-access;
-
-	resets = <&rstctrl 2>;
-	reset-names = "mcm";
-
-	port6: port@6 {
-		compatible = "mediatek,mt753x-port";
-		reg = <6>;
-		phy-mode = "trgmii";
-		fixed-link {
-			speed = <1000>;
-			full-duplex;
-		};
-	};
-
-	mdio-bus {
-		#address-cells = <1>;
-		#size-cells = <0>;
-	};
-};
-
-&pinctrl {
-	state_default: pinctrl0 {
-		gpio {
-			mtk,group = "i2c", "uart2", "uart3";
-			mtk,function = "gpio";
-		};
-	};
+&gmac1 {
+    mtd-mac-address = <&factory 0xe006>;
 };
 
 &spi0 {
-	status = "okay";
-
-	m25p80@0 {
-		#address-cells = <1>;
-		#size-cells = <1>;
-		compatible = "jedec,spi-nor";
-		reg = <0>;
-		spi-max-frequency = <25000000>;
-
-		partition@0 {
-			label = "u-boot";
-			reg = <0x00000 0x30000>;
-			read-only;
-		};
-
-		partition@30000 {
-			label = "u-boot-env";
-			reg = <0x30000 0x10000>;
-		};
-
-		partition@40000 {
-			label = "factory";
-			reg = <0x40000 0x10000>;
-			read-only;
-		};
-
-		partition@50000 {
-			label = "firmware";
-			reg = <0x50000 0x7b0000>;
-		};
-	};
-};
-
-&pcie {
-	status = "disabled";
-};
-
-&xhci {
-	status = "disabled";
-};
-
-&u3phy1 {
-	status = "disabled";
-};
-
-&sdhci {
-	status = "disabled";
-};
-
-
-&hnat {
-	/* LAN and WAN share GMAC0 through the MT7530 VLANs. */
-	mtketh-lan = "br-lan";
-	mtketh-wan = "eth0.2";
-	mtketh-ppd = "eth0";
-	mtketh-max-gmac = <1>;
-	status = "okay";
+    m25p80@0 {
+        partition@0 {
+            label = "u-boot";
+            read-only;
+        };
+        partition@30000 {
+            label = "u-boot-env";
+        };
+        factory: partition@40000 {
+            label = "factory";
+            read-only;
+        };
+        partition@50000 {
+            reg = <0x50000 0x7b0000>;
+        };
+    };
 };

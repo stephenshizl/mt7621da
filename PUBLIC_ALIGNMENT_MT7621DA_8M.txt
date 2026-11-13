@@ -1,0 +1,38 @@
+MT7621DA 8MiB vendor-topology aligned build, 2026-11-12
+
+Vendor reference: commit 6a0d032e, target/linux/ramips/dts/mt7621-rfb-nor.dts.
+The reference DTS is unchanged. Product DTS includes it and only overrides
+8MiB geometry, board identity, 57600 console, RUN LED and Factory MAC data.
+Ethernet/GSW/HNAT/pinctrl/USB/SD/PCIe nodes inherit vendor configuration.
+LAN eth0 (PHY0..3 via switch port6); WAN eth1 (PHY4 via switch port5).
+HNAT enabled, max-gmac=2, ppd=eth0; no custom br-lan HNAT property.
+HW_QOS follows vendor MT7621 templates: not enabled. UCI HQoS remains vendor
+default 0; this build does not claim validated HQoS acceleration.
+The vendor mtkhnat script/config and firewall default script are unchanged.
+Local scripts disabling acceleration/services or rewriting Samba defaults
+have been removed. Stock package defaults now apply on a clean install.
+Factory compatibility logic is retained so existing programmed identities
+and legacy LAN offset 4 are not discarded. Factory is never rewritten.
+No new Ethernet/HNAT/QDMA driver changes, CPU/DDR changes or U-Boot changes.
+Existing 8MiB size trimming, requested VPN/software packages, modern-host
+build fixes and bounded image/upgrade validation are retained.
+
+IMPORTANT: this topology differs from the previous eth0.1/eth0.2 layout.
+Back up settings externally, then install WITHOUT keeping settings.
+Do not restore the entire old network config afterward. Reconfigure the
+required WAN, services and MAC overrides manually after board acceptance.
+The firmware contains no automatic rewrite of saved user network settings.
+
+LuCI: System -> Backup / Flash Firmware; back up first, uncheck Keep settings,
+upload the matching sysupgrade image, verify SHA256 and then Proceed.
+SSH equivalent after checking the image: sysupgrade -T /tmp/image.bin
+and only after success: sysupgrade -n /tmp/image.bin. Never use -F.
+This system image does not update U-Boot or erase Factory/environment.
+U-Boot recovery requires the matching already-installed 8MiB bootloader;
+use LAN, PC 192.168.1.2/24, hold RESET during power-up and open 192.168.1.1.
+Select this release's sysupgrade image using its new hash, not an old hash.
+
+Supplier confirmation and hardware testing of dual-GMAC port5 routing are
+still required. Build/layout checks are not proof of working HNAT or HQoS.
+Old network-baseline/upgrade documents describe prior releases; this file
+and this release's manifest supersede their defaults and fixed image hashes.

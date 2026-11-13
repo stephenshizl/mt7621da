@@ -1,0 +1,124 @@
+MT7621DA 本次8M固件的Web升级操作说明
+更新日期：2026-11-12
+
+一、本次使用哪个文件
+
+Windows交付文件：
+F:\work-2026\mtk7621\work\step-v3\员工1_8M全功能演示方案\firmware\mt7621da-5port-8m-squashfs-sysupgrade.bin
+
+文件大小：6,815,925字节
+SHA-256：d8e38a09f5ad22b4b3359500d66934d2c80cc21aa05244ab9d587d309b03c39e
+系统版本：r11+1-823a7b4c
+升级设备标识：mt7621da-5port
+固件构建源码：OpenWrt work-8M / 823a7b4c1c254005fc055bec9de4ad2c4548ec6d
+配套引导源码：U-Boot work_8M / 46c6edbdd059bc6df8a35df4feb43a076f8ae6bf
+
+源码构建目录中的同一系统镜像沿用SDK文件名：
+bin/targets/ramips/mt7621/lede-ramips-mt7621-mt7621da-5port-squashfs-sysupgrade.bin
+其内容与交付文件相同，应核对上述SHA-256。
+
+本说明适用于已确认的MT7621DA本板8MiB Flash、4LAN1WAN有线产品。
+普通LuCI升级和本版U-Boot网页恢复都选择上面的sysupgrade文件。
+initramfs-kernel.bin用于RAM调试；full-flash-blank-factory.bin用于空片编程；
+u-boot-mt7621.bin用于独立引导更新。它们均不是本次LuCI系统升级上传文件。
+
+二、升级前准备
+
+1. 使用稳定供电，电脑网线直连LAN1至LAN4任一口。
+   普通管理页面的地址以当前LAN管理IP为准；出厂默认是192.168.1.1。
+   不确定地址时，查看电脑网卡的默认网关，或查当前设备配置。
+2. 电脑网卡先使用自动获取IP；如本机已关闭DHCP，配置同网段静态IP。
+   升级期间可暂时关闭电脑Wi-Fi/VPN等会改变访问路径的连接。
+3. 记录当前LAN管理IP、WAN接入方式及账号、管理员登录信息和重要业务配置。
+4. 从LuCI下载配置备份。配置归档不是整片、U-Boot或Factory备份；
+   若还要更新引导或进行整片编程，需另外保存单机Factory/env及原始镜像。
+5. 在Windows PowerShell核对文件：
+
+   Get-FileHash -Algorithm SHA256 'F:\work-2026\mtk7621\work\step-v3\员工1_8M全功能演示方案\firmware\mt7621da-5port-8m-squashfs-sysupgrade.bin'
+
+   结果应与第一节一致，十六进制字母大小写不影响比较。
+   旧8M固件的检查较宽，不能仅因旧网页允许继续就省略独立文件核对。
+
+三、普通LuCI网页升级（设备当前能够正常启动时使用）
+
+1. 浏览器打开当前设备的LAN管理地址并登录，例如：
+   http://192.168.1.1/
+   若已改过管理IP，使用修改后的地址。
+2. 进入“系统 -> 备份/升级”，英文菜单为“System -> Backup / Flash Firmware”。
+   本SDK页面内部路径为：/cgi-bin/luci/admin/system/flashops
+3. 在“备份/恢复 / Backup / Restore”中，点击“生成备份 / Generate archive”，
+   把下载的配置tar.gz保存到电脑。
+4. 在“刷写新固件 / Flash new firmware image”中选择是否“保留配置 / Keep settings”：
+   - 同一块8M板，需保留当前LAN IP、WAN及已有UCI设置：勾选。
+   - 希望以本版默认配置做干净验证：取消勾选；先确保已保存备份和业务账号。
+     此模式会清除现有用户配置，重启后按默认192.168.1.1重新连接并设置管理密码。
+   保留配置不等于保留后来手工安装的软件包，也不保证跨板型/跨分区兼容。
+5. 点击“选择文件”，选择第一节的8m-squashfs-sysupgrade.bin文件，
+   再点击“刷写固件 / Flash image...”。这一步只是上传和预检。
+6. 等待进入“Flash Firmware - Verify”确认页，检查：
+   - 文件与本次交付一致；大小应为6,815,925字节，页面可能按MiB四舍五入显示。
+   - SHA256与第一节一致。当前SDK页面同时显示MD5和SHA256。
+   - “Configuration files will be kept / erased”符合刚才的选择。
+   校验失败、容量不符或出现不支持镜像提示时停止，重新核对设备和文件；不强刷。
+7. 确认无误后点击“继续 / Proceed”。点击这一步才开始写Flash。
+8. 页面进入“Flashing...”后，等待自动重启。此时网页、SSH或网卡短暂断开属于流程内现象。
+   写入期间保持供电和网线连接；不要按RESET或重复提交。
+   通常需要数分钟。可先等待约5分钟，再检查网卡和设备状态；不能把固定等待时间
+   当作已经写完的证据，也不要仅因网页未自动跳转就断电。
+9. 重启后重新获取电脑IP：
+   - 保留配置：访问原来的LAN管理IP，使用原有登录信息。
+   - 不保留配置：访问192.168.1.1，按首次登录流程设置管理密码。
+   若浏览器页面异常，可重新打开管理地址或强制刷新，先核对电脑是否处于正确网段。
+
+四、升级后必须检查
+
+1. LuCI“状态 -> 概览 / Status -> Overview”应显示系统版本r11+1-823a7b4c。
+2. 检查LAN1至LAN4、WAN、上网方式、管理IP及应保留的业务设置。
+3. 检查中英文切换以及Samba、OpenVPN、QoS等页面。
+   新业务首次初始化时Samba/OpenVPN/IPsec/QoS默认不自启，配置后按需启用；
+   软件包存在不代表VPN隧道或硬件加速已经完成业务验证。
+4. 可选SSH只读检查：
+
+   cat /etc/openwrt_version
+   cat /tmp/sysinfo/board_name
+   cat /proc/mtd
+   df -h /overlay
+
+   版本：r11+1-823a7b4c；board_name：mt7621da-5port。
+   firmware行应为长度007b0000、擦除块00010000。
+   rootfs_data预计总长度1216KiB；df可用量会因JFFS2和配置占用而更小。
+5. 验证保存配置后重启仍有效。业务与硬件验收按照交付报告逐项执行。
+
+五、U-Boot阶段网页升级OpenWrt（正常系统不能启动，或需要重新安装时使用）
+
+独立详细说明见同目录/源码根目录 UBOOT_WEB_UPGRADE_MT7621DA_8M.txt。
+本节操作在U-Boot阶段完成，升级的是OpenWrt系统，不是更新U-Boot自身。
+
+前提：已经单独安装本次配套的8M U-Boot。
+仅通过LuCI升级系统不会更新U-Boot，旧引导未安装恢复功能时不能假定按键即有恢复页。
+安装U-Boot需另走受控流程，保留0x30000的env及0x40000的Factory。
+
+1. 断开电源，电脑直连LAN1至LAN4任一口，设静态IP 192.168.1.2，
+   子网掩码255.255.255.0；此直连网卡可留空网关/DNS。
+2. 按住RESET上电，保持到运行灯闪烁后松开。本版低电平持续500ms触发，
+   最多等待松开10秒；实际灯光、按键和LAN恢复仍须实板验证。
+3. 浏览器打开 http://192.168.1.1/ ，进入本版免密码恢复页面。
+   WAN P4已隔离，电脑必须插LAN。
+4. 选择第一节同一个8M sysupgrade文件，按页面执行上传、校验和写入。
+   此页面不沿用LuCI的Verify/Proceed流程，提交前就要核对文件，不能假定另有二次确认。
+   该恢复页只更新firmware，不是LuCI的“保留配置”升级流程；
+   应按需要重新配置系统准备，不能依赖旧overlay继续保留。
+5. 保持供电，等待写后回读校验及重启。正常启动后，将电脑恢复为自动获取IP，
+   再按第四节检查版本、网口和设置。
+
+六、异常处理及范围
+
+- 上传后停在校验页：尚未点击Proceed时还没有开始本次LuCI刷写，可取消并核对文件。
+- 上传报错：核对8M板型、文件是否完整、SHA-256及分区，不能用16M文件或强制选项绕过。
+- 重启后网页打不开：先检查LAN插口、电脑IP、原管理IP/默认192.168.1.1及浏览器缓存。
+  如仍不能启动，再使用已安装的配套Web恢复或串口诊断，不直接用空片整片样板覆盖设备。
+- LuCI系统升级只写firmware，不升级引导，也不改变8M芯片的物理容量。
+
+说明依据本次实际LuCI源码、镜像检查和构建结果编写。
+本轮未执行实板Web刷机；操作说明不是已经完成现场升级验收的记录。
+本次为文档补充，固件二进制及上述构建提交、版本和SHA-256保持原交付值。

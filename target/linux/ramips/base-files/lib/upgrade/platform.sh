@@ -238,7 +238,19 @@ platform_check_image() {
 		nand_do_platform_check "$board" "$1"
 		return $?;
 		;;
-	mt7621da-5port|\
+	mt7621da-5port)
+		if ! grep -q '^mtd[0-9]*: 007b0000 00010000 "firmware"$' /proc/mtd; then
+			echo "Expected the 8 MiB firmware partition."
+			return 1
+		fi
+		if [ "$magic" != "d00dfeed" ] || ! fwtool -q -i /dev/null "$1"; then
+			echo "Expected FIT with valid sysupgrade metadata."
+			return 1
+		fi
+		fwtool_check_image "$1" || return 1
+		/usr/sbin/mt7621da-image-check "$1"
+		return $?
+		;;
 	mt7621-*)
 		# use metadata check only
 		return 0;

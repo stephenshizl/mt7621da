@@ -42,10 +42,8 @@ Build/Compile = $(Build/Compile/Default)
 define Package/mtk-base-files/install
 	$(CP) ./files/* $(1)/
 
-	-cp -f $(TOPDIR)/.config $(1)/etc/openwrt.config
-	-cp -f $(LINUX_DIR)/.config $(1)/etc/kernel.config
 	-cp -f $(LINUX_DIR)/.config $(TOPDIR)/tmp/kernel.config
-	if [ -d $(TOPDIR)/.git ]; then echo `git rev-parse HEAD | cut -c-8` > $(1)/etc/sdk.version ;fi
+	if [ -e $(TOPDIR)/.git ]; then echo `git rev-parse HEAD | cut -c-8` > $(1)/etc/sdk.version ;fi
 	if [ -f $(LINUX_DIR)/.p4rev ]; then cp $(LINUX_DIR)/.p4rev $(1)/etc/kernel.p4rev ;fi
 	if [ -f $(TOPDIR)/.mtk.openwrt.ver ]; then {\
 		cat $(TOPDIR)/.mtk.openwrt.ver >> $(1)/etc/banner.mtk;\
