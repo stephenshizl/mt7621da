@@ -1,0 +1,83 @@
+MT7621DA 5-port 8MiB wired feature build
+
+Branch: work-8M. SPI NOR: 8MiB, DDR3: 128MiB, UART: 57600 8N1.
+4 LAN ports (PHY 0..3), WAN PHY 4. No wireless hardware.
+
+Build from this checkout (do not use another checkout's generated .config):
+  export FORCE_UNSAFE_CONFIGURE=1
+  cp autobuild/mt7621da-5port-switch/.config .config
+  cp autobuild/mt7621da-5port-switch/config-4.4 target/linux/ramips/mt7621/config-4.4
+  make defconfig
+  make -j6 V=s
+On failure retain the log and locate the first error with make -j1 V=s.
+Use a fresh output directory or clean target/linux and base-files when changing
+board layout/configuration. Download and toolchain caches may be reused.
+
+Output: bin/targets/ramips/mt7621/
+  lede-ramips-mt7621-mt7621da-5port-squashfs-sysupgrade.bin
+  lede-ramips-mt7621-mt7621da-5port-initramfs-kernel.bin
+  lede-ramips-mt7621.manifest, config.seed, sha256sums
+
+Partition layout (end exclusive):
+  u-boot       0x000000 + 0x030000
+  u-boot-env   0x030000 + 0x010000
+  factory      0x040000 + 0x010000
+  firmware     0x050000 + 0x7b0000 = 0x800000
+Build limit 7872k. supported_devices must contain only mt7621da-5port.
+Never install a 16MiB DT/firmware just because its file is smaller than 8MiB.
+
+The wired services retain Samba4, OpenVPN/OpenSSL, strongSwan/IPsec,
+PPP/PPPoE/L2TP/PPTP, QoS, HNAT/HQoS, socat and Chinese/English LuCI.
+tcpdump, iperf3, libpcap and full build-config copies are omitted from ROM.
+The config sources, manifest and hashes belong in the delivery archive.
+Samba/OpenVPN/IPsec/QoS are initially disabled; configure then enable them.
+The first-boot policy is applied once and is kept as a UCI configuration flag.
+Samba homes is disabled, access is limited to LAN; IPsec TEST is disabled.
+Existing custom configuration should be backed up before migration.
+
+Normal sysupgrade validates actual MTD geometry, metadata CRC and device ID,
+then checks the embedded FIT/DT and SquashFS layout with mt7621da-image-check.
+The helper uses libfdt. Checks detect corruption/layout mismatch, not signatures.
+Use sysupgrade -T first and never use -F to bypass validation.
+Old firmware has weaker validation: independently inspect the first update.
+
+RESET is GPIO18 active low. Hold RESET during power-up for Web recovery
+using the matching 8MiB U-Boot. In Linux, hold >5 seconds then release to reset.
+Factory LAN MAC: 0xe000; WAN: 0xe006. Old LAN offset 4 remains supported.
+Always preserve each unit's Factory/env. Blank Factory is not production data.
+
+UART1/ttyS0 is shared with the debug console: socat alone does not release
+the console or implement Modbus RTU/TCP conversion. Verify wiring and console
+ownership before RS485 use. PoE needs actual compliant hardware.
+HNAT/HQoS, VPN acceleration, SMB and RS485 performance require board tests.
+
+
+2026-11-12 文档补充：本次固件Web升级
+完整中文步骤见本源码根目录 WEB_UPGRADE_MT7621DA_8M.txt。
+普通LuCI菜单：System -> Backup / Flash Firmware；上传后核对大小和SHA256，
+再点击Proceed。交付文件为mt7621da-5port-8m-squashfs-sysupgrade.bin，
+6,815,925字节，SHA256 d8e38a09f5ad22b4b3359500d66934d2c80cc21aa05244ab9d587d309b03c39e。
+系统Web升级不更新U-Boot；按键进入恢复页须先安装配套8M引导。
+本次为文档增补，交付固件仍为r11+1-823a7b4c，未重新编译或刷写设备。
+
+
+2026-11-12 补充：U-Boot阶段网页升级OpenWrt
+独立完整步骤见 UBOOT_WEB_UPGRADE_MT7621DA_8M.txt。
+前提：先单独安装配套8M U-Boot；仅通过LuCI升级系统不会获得该引导恢复功能。
+1. 电脑直连LAN1至LAN4，设192.168.1.2/24；WAN口不提供引导恢复服务。
+2. 路由器断电，按住RESET再上电，看到运行灯闪烁后松开。
+3. 浏览器访问http://192.168.1.1/，进入U-Boot免密码恢复页。
+4. 选择mt7621da-5port-8m-squashfs-sysupgrade.bin，6,815,925字节，
+   SHA256 d8e38a09f5ad22b4b3359500d66934d2c80cc21aa05244ab9d587d309b03c39e。
+5. 提交上传/更新前先核对文件。此页面不沿用LuCI的Verify/Proceed二次确认流程。
+6. 等待校验、firmware擦写、回读及重启，期间保持供电，不按RESET或重复提交。
+7. 正常启动后电脑恢复DHCP，检查r11+1-823a7b4c及LAN/WAN、语言、业务设置。
+本流程升级的是OpenWrt系统，不是刷写U-Boot自身；首0x50000的引导/env/Factory受保护。
+恢复不提供LuCI的配置归档/恢复流程，应按可能需要重新配置准备。
+本轮未进行实板网页刷写；本次仅文档更新，固件二进制及SHA256不变。
+
+2026-11-12 网络基线回归：本板HNAT/HW_QOS恢复关闭。
+此前HNAT/HQoS描述仅指原版本，详见NETWORK_BASELINE_FIX_MT7621DA_8M.txt。
+
+2026-11-12 Vendor topology alignment: PUBLIC_ALIGNMENT_MT7621DA_8M.txt
+now defines the current network/defaults and clean-upgrade requirement.

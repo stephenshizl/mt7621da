@@ -1,0 +1,22 @@
+--- a/src/openvpn/crypto_openssl.c
++++ b/src/openvpn/crypto_openssl.c
+@@ -108,7 +108,18 @@ setup_engine(const char *engine)
+                        engine);
+         }
+ 
+-        if (!ENGINE_set_default(e, ENGINE_METHOD_ALL))
++        /*
++         * The Linux cryptodev engine exposes cipher and digest methods, but
++         * using its legacy digest path for OpenSSL's internal PRNG breaks
++         * RAND_bytes() in OpenVPN.  Use cryptodev for ciphers only; HMAC and
++         * the PRNG remain in libcrypto.  Keep the historical behaviour for
++         * every other engine.
++         */
++        const int default_methods = strcmp(ENGINE_get_id(e), "cryptodev") == 0
++                                    ? ENGINE_METHOD_CIPHERS
++                                    : ENGINE_METHOD_ALL;
++
++        if (!ENGINE_set_default(e, default_methods))
+         {
+             crypto_msg(M_FATAL,
+                        "OpenSSL error: ENGINE_set_default failed on engine '%s'",

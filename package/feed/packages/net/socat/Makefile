@@ -12,7 +12,8 @@ PKG_VERSION:=1.7.3.1
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:=http://www.dest-unreach.org/socat/download
+PKG_SOURCE_URL:=https://sources.openwrt.org/ \
+	https://www.dest-unreach.org/socat/download/
 PKG_MD5SUM:=d2da659540c38139f388e9437bfaae16bb458d174d056cb3228432a8f489fbaa
 
 PKG_MAINTAINER:= Ted Hess <thess@kitschensync.net>
