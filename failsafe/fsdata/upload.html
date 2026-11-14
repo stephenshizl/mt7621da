@@ -1,23 +1,18 @@
 <!doctype html>
-<html>
-<head>
-	<title>Confirm - MediaTek System Recovery Mode</title>
-	<link rel="stylesheet" type="text/css" href="/style.css">
-</head>
-<body>
-	<div id="banner">
-		MediaTek U-Boot System Recovery Mode
-	</div>
-	<div id="main">
-		<p>File confirmation:</p>
-		<div id="fileinfo">
-			<p>MD5: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</p>
-			<p>Size: YYYYYYYYYY Bytes</p>
-		</div>
-		<p>If all information above is correct, click [Proceed].</p>
-		<form action="/flashing" method="post" enctype="multipart/form-data">
-			<p><input type="submit" id="submit" value="Proceed" /></p>
-		</form>
-	</div>
-</body>
-</html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>MT7621DA 固件恢复</title>
+<link rel="stylesheet" href="/style.css">
+<header>MT7621DA 固件恢复</header>
+<main>
+<h1>确认升级</h1>
+<p>大小：YYYYYYYYYY 字节</p>
+<p>MD5：<code>XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</code></p>
+<p>写入期间请保持供电，等待设备自动重启。</p>
+<form action="/flashing" method="post" enctype="multipart/form-data">
+<input type="hidden" name="ticket" value="ZZZZZZZZ">
+<button>确认写入</button>
+<a href="/">返回首页</a>
+</form>
+</main>

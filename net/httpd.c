@@ -276,6 +276,14 @@ u32 http_make_response_header(struct http_response_info *info, char *buff,
 	if (p >= buff + size)
 		return size;
 
+	if (info->content_disposition)
+		p += snprintf(p, buff + size - p,
+			"Content-Disposition: %s\r\n",
+			info->content_disposition);
+
+	if (p >= buff + size)
+		return size;
+
 	if (info->location)
 		p += snprintf(p, buff + size - p, "Location: %s\r\n",
 			info->location);
@@ -433,6 +441,9 @@ static int httpd_recv_hdr(struct httpd_instance *inst,
 			pdata->boundary = b_ptr;
 			debug("    Content-Type: boundary=\"%s\"\n", b_ptr);
 		}
+
+		if (!pdata->boundary || !*pdata->boundary)
+			goto bad_request;
 
 		if (hdr_size + pdata->payload_size < sizeof(pdata->buf)) {
 			/* upload payload can be put into the cache */
@@ -596,6 +607,8 @@ static int httpd_handle_request(struct httpd_instance *inst,
 		p = pdata->upload_ptr;
 		payload_end = pdata->upload_ptr + pdata->payload_size;
 		do {
+			if (payload_end - p < boundarylen + 2)
+				break;
 			p += boundarylen;
 			if (strncmp(p, "\r\n", 2))
 				break;
@@ -605,13 +618,10 @@ static int httpd_handle_request(struct httpd_instance *inst,
 			formdata[numformdata] = p;
 
 			p = memstr(p, payload_end - p, boundary);
-			if (!p)
+			if (!p || p - formdata[numformdata] < 2 ||
+			    strncmp(p - 2, "\r\n", 2))
 				break;
-
-			if (!strncmp(p - 2, "\r\n", 2))
-				p[-2] = 0;
-			else
-				*p = 0;
+			p[-2] = 0;
 
 			formdata_end[numformdata] = p - 2;
 			numformdata++;
@@ -621,7 +631,7 @@ static int httpd_handle_request(struct httpd_instance *inst,
 		for (i = 0; i < numformdata; i++) {
 			val = &req->form.values[req->form.count];
 			p = strstr(formdata[i], "\r\n\r\n");
-			if (!p)
+			if (!p || p + 4 > formdata_end[i])
 				continue;
 
 			*p = 0;
@@ -854,7 +864,8 @@ struct httpd_form_value *httpd_request_find_value(
 		return NULL;
 
 	for (i = 0; i < request->form.count; i++) {
-		if (!strcmp(request->form.values[i].name, name))
+		if (request->form.values[i].name &&
+		    !strcmp(request->form.values[i].name, name))
 			return &request->form.values[i];
 	}
 

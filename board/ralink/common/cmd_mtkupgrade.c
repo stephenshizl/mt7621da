@@ -19,6 +19,7 @@
 #include <dm.h>
 #include <mmc.h>
 #include <part.h>
+#include <spi_flash.h>
 #include <fs.h>
 #include <asm/unaligned.h>
 
@@ -987,19 +988,119 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size)
 }
 
 #if defined(CONFIG_MT7621_5PORT_SWITCH) && defined(CONFIG_WEBUI_FAILSAFE)
-static int mt7621_has_rootfs(const u8 *data, u32 size, u32 kernel_size)
+static int mt7621_fit_bounds(const void *fdt, u32 available)
 {
-	u32 off;
+	u32 size, off;
+
+	if (available < sizeof(struct fdt_header) ||
+	    fdt_magic(fdt) != FDT_MAGIC || fdt_check_header(fdt) ||
+	    fdt_version(fdt) != 17)
+		return 0;
+	size = fdt_totalsize(fdt);
+	if (size < sizeof(struct fdt_header) || size > available)
+		return 0;
+
+	off = fdt_off_dt_struct(fdt);
+	if (off < sizeof(struct fdt_header) || off > size ||
+	    fdt_size_dt_struct(fdt) > size - off)
+		return 0;
+	off = fdt_off_dt_strings(fdt);
+	return off >= sizeof(struct fdt_header) && off < size &&
+	       fdt_size_dt_strings(fdt) <= size - off;
+}
+
+/* The vendor SDK builds this board's FIT with embedded image data. */
+static int mt7621_fit_has_embedded_images(const void *fit)
+{
+	int images = fdt_path_offset(fit, FIT_IMAGES_PATH);
+	int node;
+
+	if (images < 0)
+		return 0;
+	fdt_for_each_subnode(node, fit, images) {
+		if (!fdt_getprop(fit, node, FIT_DATA_PROP, NULL) ||
+		    fdt_getprop(fit, node, FIT_DATA_OFFSET_PROP, NULL) ||
+		    fdt_getprop(fit, node, FIT_DATA_POSITION_PROP, NULL))
+			return 0;
+	}
+	return node == -FDT_ERR_NOTFOUND;
+}
+
+static u32 mt7621_rootfs_size(const u8 *data, u32 size)
+{
 	u64 used;
 
-	for (off = ALIGN(kernel_size, 4); off <= size - 96; off += 4) {
-		if (memcmp(data + off, "hsqs", 4))
-			continue;
-		used = get_unaligned_le64(data + off + 40);
-		if (get_unaligned_le16(data + off + 28) == 4 &&
-		    used >= 96 && used <= size - off)
+	if (size < 96 || memcmp(data, "hsqs", 4) ||
+	    get_unaligned_le16(data + 28) != 4)
+		return 0;
+	used = get_unaligned_le64(data + 40);
+	return used >= 96 && used <= size ? used : 0;
+}
+
+static int mt7621_has_legacy_rootfs(const u8 *data, u32 size, u32 kernel_size)
+{
+	u32 off;
+
+	for (off = ALIGN(kernel_size, 4); off <= size - 96; off += 4)
+		if (mt7621_rootfs_size(data + off, size - off))
 			return 1;
-	}
+	return 0;
+}
+
+static int mt7621_fit_overlay(const void *fit, u32 size, u32 *overlay)
+{
+	const void *fdt;
+	size_t fdt_size;
+	u32 rootfs, used;
+	int conf, fdt_node, part, len;
+	const fdt32_t *reg;
+
+	if (!mt7621_fit_bounds(fit, size) || !fit_check_format(fit) ||
+	    !mt7621_fit_has_embedded_images(fit) || !fit_all_image_verify(fit))
+		return -EINVAL;
+
+	conf = fit_conf_get_node(fit, NULL);
+	fdt_node = conf < 0 ? conf :
+		fit_conf_get_prop_node(fit, conf, FIT_FDT_PROP);
+	if (fdt_node < 0 || fit_image_get_data(fit, fdt_node, &fdt, &fdt_size) ||
+	    !mt7621_fit_bounds(fdt, fdt_size) ||
+	    fdt_node_check_compatible(fdt, 0, "mediatek,mt7621da-5port") ||
+	    !fdt_node_check_compatible(fdt, 0, "mediatek,mt7621da-5port-16m"))
+		return -EINVAL;
+
+	part = fdt_node_offset_by_prop_value(fdt, -1, "label", "firmware", 9);
+	reg = part < 0 ? NULL : fdt_getprop(fdt, part, "reg", &len);
+	if (!reg || len != 8 ||
+	    fdt32_to_cpu(reg[0]) != CONFIG_DEFAULT_NOR_KERNEL_OFFSET ||
+	    fdt32_to_cpu(reg[1]) != SZ_8M - CONFIG_DEFAULT_NOR_KERNEL_OFFSET)
+		return -EINVAL;
+
+	rootfs = ALIGN(fdt_totalsize(fit), SZ_64K);
+	if (rootfs >= size)
+		return -EINVAL;
+	used = mt7621_rootfs_size((const u8 *)fit + rootfs, size - rootfs);
+	if (!used)
+		return -EINVAL;
+	*overlay = rootfs + ALIGN(used, SZ_64K);
+	return 0;
+}
+
+int mt7621_restore_settings(void *flash, void *buffer)
+{
+	u32 off = CONFIG_DEFAULT_NOR_KERNEL_OFFSET;
+	u32 overlay;
+	static const u8 marker[] = { 0xde, 0xad, 0xc0, 0xde };
+
+	if (mtk_board_flash_read(flash, off, SZ_8M - off, SZ_8M, buffer) ||
+	    mt7621_fit_overlay(buffer, SZ_8M - off, &overlay) ||
+	    overlay >= SZ_8M - off)
+		return -EINVAL;
+	off += overlay;
+	printf("Resetting rootfs_data at 0x%x, size 0x%x\n", off, SZ_8M - off);
+	if (mtk_board_flash_erase(flash, off, SZ_8M - off, SZ_8M) ||
+	    mtk_board_flash_write(flash, off, sizeof(marker), SZ_8M, marker) ||
+	    mtk_board_flash_verify(flash, off, sizeof(marker), SZ_8M, marker))
+		return -EIO;
 	return 0;
 }
 #endif
@@ -1008,23 +1109,18 @@ int write_firmware_failsafe(size_t data_addr, uint32_t data_size)
 {
 	void *flash;
 #if defined(CONFIG_MT7621_5PORT_SWITCH) && defined(CONFIG_WEBUI_FAILSAFE)
-	const void *fit = (const void *)data_addr;
-	const image_header_t *hdr = fit;
-	const void *fdt;
-	size_t fdt_size;
-	uint64_t part_off, part_size;
-	u32 kernel_size;
-	int conf, fdt_node, part, len;
-	const fdt32_t *reg;
+	const image_header_t *hdr = (const void *)data_addr;
+	u64 part_off, part_size;
+	u32 overlay;
 #endif
 
 	flash = mtk_board_get_flash_dev();
-
 	if (!flash)
 		return CMD_RET_FAILURE;
 
 #if defined(CONFIG_MT7621_5PORT_SWITCH) && defined(CONFIG_WEBUI_FAILSAFE)
-	if (get_mtd_part_info("firmware", &part_off, &part_size) ||
+	if (((struct spi_flash *)flash)->size != SZ_8M ||
+	    get_mtd_part_info("firmware", &part_off, &part_size) ||
 	    part_off != CONFIG_DEFAULT_NOR_KERNEL_OFFSET ||
 	    part_size != SZ_8M - CONFIG_DEFAULT_NOR_KERNEL_OFFSET ||
 	    data_size > part_size || data_size < 96)
@@ -1035,36 +1131,13 @@ int write_firmware_failsafe(size_t data_addr, uint32_t data_size)
 		    image_get_data_size(hdr) > data_size - sizeof(*hdr) ||
 		    !image_check_arch(hdr, IH_ARCH_MIPS) ||
 		    !image_check_os(hdr, IH_OS_LINUX) ||
-		    !image_check_type(hdr, IH_TYPE_KERNEL) || !image_check_dcrc(hdr))
+		    !image_check_type(hdr, IH_TYPE_KERNEL) || !image_check_dcrc(hdr) ||
+		    !mt7621_has_legacy_rootfs((const u8 *)hdr, data_size,
+					     image_get_image_size(hdr)))
 			goto invalid;
-		kernel_size = image_get_image_size(hdr);
-		if (!mt7621_has_rootfs(fit, data_size, kernel_size))
-			goto invalid;
-		return _write_firmware(flash, data_addr, data_size);
+	} else if (mt7621_fit_overlay(hdr, data_size, &overlay)) {
+		goto invalid;
 	}
-
-	if (fdt_check_header(fit))
-		goto invalid;
-	kernel_size = fdt_totalsize(fit);
-	if (kernel_size < sizeof(struct fdt_header) || kernel_size > data_size ||
-	    !fit_check_format(fit) || !fit_all_image_verify(fit))
-		goto invalid;
-
-	conf = fit_conf_get_node(fit, NULL);
-	fdt_node = conf < 0 ? conf :
-		fit_conf_get_prop_node(fit, conf, FIT_FDT_PROP);
-	if (fdt_node < 0 || fit_image_get_data(fit, fdt_node, &fdt, &fdt_size) ||
-	    fdt_size < sizeof(struct fdt_header) || fdt_check_header(fdt) ||
-	    fdt_totalsize(fdt) > fdt_size ||
-	    fdt_node_check_compatible(fdt, 0, "mediatek,mt7621da-5port") ||
-	    !fdt_node_check_compatible(fdt, 0, "mediatek,mt7621da-5port-16m") ||
-	    !mt7621_has_rootfs(fit, data_size, kernel_size))
-		goto invalid;
-	part = fdt_node_offset_by_prop_value(fdt, -1, "label", "firmware", 9);
-	reg = part < 0 ? NULL : fdt_getprop(fdt, part, "reg", &len);
-	if (!reg || len != 8 || fdt32_to_cpu(reg[0]) != part_off ||
-	    fdt32_to_cpu(reg[1]) != part_size)
-		goto invalid;
 #endif
 	return _write_firmware(flash, data_addr, data_size);
 

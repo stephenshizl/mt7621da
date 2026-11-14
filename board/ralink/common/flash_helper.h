@@ -13,6 +13,7 @@
 int get_mtd_part_info(const char *partname, uint64_t *off, uint64_t *size);
 
 void *mtk_board_get_flash_dev(void);
+int mt7621_restore_settings(void *flash, void *buffer);
 size_t mtk_board_get_flash_erase_size(void *flashdev);
 int mtk_board_flash_adjust_offset(void *flashdev, uint64_t base,
 				  uint64_t offset, uint64_t limit,

@@ -54,6 +54,7 @@ enum httpd_response_status {
 struct http_response_info {
 	u32 code;
 	const char *content_type;
+	const char *content_disposition;
 	int content_length;
 	const char *location;
 	int connection_close;

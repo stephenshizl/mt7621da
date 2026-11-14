@@ -1,32 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<title>Flashing - MediaTek System Recovery Mode</title>
-	<link rel="stylesheet" type="text/css" href="/style.css">
-</head>
-<body>
-	<div id="banner">
-		MediaTek U-Boot System Recovery Mode
-	</div>
-	<div id="main">
-		<p>Upgrading is in progressing, please wait ...</p>
-		<p>This page may be in not responding status for a short time.</p>
-	</div>
-	<script type="text/javascript">
-		var interval = window.setInterval(function () {
-			var xmlhttp = new XMLHttpRequest();
-
-			window.clearInterval(interval);
-
-			xmlhttp.timeout = 300000;
-			xmlhttp.open("GET", "/result", true);
-			xmlhttp.send();
-			xmlhttp.onreadystatechange = function () {
-				if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-					document.getElementById("main").innerHTML = xmlhttp.responseText;
-				}
-			}
-		}, 1000);
-	</script>
-</body>
-</html>
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>MT7621DA 固件恢复</title>
+<link rel="stylesheet" href="/style.css">
+<header>MT7621DA 固件恢复</header>
+<main>
+<h1>正在检查并写入固件</h1>
+<p>请保持供电，等待下方结果。</p>
+<hr>

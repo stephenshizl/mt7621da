@@ -1,26 +1,8 @@
-
-body {
-	padding: 1em;
-}
-
-#banner {
-	width: 100%;
-	height: 40px;
-	font-size: 2em;
-	text-align: center;
-	margin-bottom: 30px;
-}
-
-#main {
-	width: 500px;
-	margin: auto;
-}
-
-#submit {
-	display: block;
-	margin: auto;
-}
-
-#fileinfo {
-	padding-left: 20px;
-}
+body{margin:0;background:#eef2f6;color:#19283a;font:16px system-ui,sans-serif}
+header{background:#16324f;color:white;padding:1em;font-weight:bold}
+main{max-width:36em;margin:2em auto;padding:1.2em;background:white;border-radius:.5em}
+h1,h2{font-size:1.2em}
+form{margin:.8em 0}
+button,input{font:inherit;margin:.2em}
+button{background:#194f78;color:white;border:0;padding:.45em .8em;border-radius:.25em}
+a{color:#194f78}
